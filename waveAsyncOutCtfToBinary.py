@@ -1,10 +1,22 @@
+BYTE_SIZE = 8
+
 fileName = "./async_out.ctf"
-state = ""
+currentState = ""
 position = 0
 tickInterval = 10
-binaryString = ""
+currentString = ""
+asciiChars = []
 skipFirstLine = True
-BYTE_LEN = 8
+waitingForStart = True
+prevState = 1
+
+
+def swapEndianness(byteToSwap):
+    newValue = ""
+    for letter in byteToSwap:
+        newValue = letter + newValue
+    return newValue
+
 
 with open(fileName, "r") as analogFile:
     for line in analogFile.readlines():
@@ -14,8 +26,21 @@ with open(fileName, "r") as analogFile:
 
         runTime, notUsed, newState = line.split()
         while position < int(runTime):
-            binaryString += state
             position += tickInterval
-        state = newState
+            if not waitingForStart:
+                currentString += currentState
 
-print(' '.join(binaryString[i:i+BYTE_LEN] for i in range(0,len(binaryString),BYTE_LEN)))
+                if len(currentString) == BYTE_SIZE:
+                    asciiChars.append(chr(int(swapEndianness(currentString),2)))
+                    currentString = ""
+                    waitingForStart = True
+
+            else:
+                if (prevState == "1") and (currentState == "0"):
+                    waitingForStart = False
+
+        prevState = currentState
+        currentState = newState
+
+
+print("".join(asciiChars))
